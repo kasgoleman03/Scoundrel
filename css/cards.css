@@ -1,0 +1,194 @@
+/* =========================================================
+   Cards — sizing, faces, suit theming, interactive states.
+   Each card is a button containing a "flipper" with two faces:
+   .card-face.back and .card-face.front. The .is-flipped class
+   on .card triggers the 3D flip.
+   ========================================================= */
+
+.card {
+  position: relative;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  aspect-ratio: 2 / 3;
+  perspective: 900px;
+  border-radius: var(--radius);
+  outline: none;
+  width: 100%;
+  /* Stagger the entrance for visual rhythm */
+  animation: card-enter var(--dur) var(--ease) backwards;
+}
+.card:nth-child(1) { animation-delay:   0ms; }
+.card:nth-child(2) { animation-delay:  80ms; }
+.card:nth-child(3) { animation-delay: 160ms; }
+.card:nth-child(4) { animation-delay: 240ms; }
+
+.card .flipper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform var(--dur-slow) var(--ease);
+  will-change: transform;
+}
+.card.is-flipped .flipper { transform: rotateY(180deg); }
+
+.card-face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  box-shadow: var(--shadow-2);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ---------- Back (face-down) ---------- */
+.card-face.back {
+  background:
+    radial-gradient(120% 80% at 50% 110%, rgba(230,196,106,.12), transparent 60%),
+    repeating-linear-gradient(45deg,
+      #1a2030 0 6px, #141926 6px 12px);
+  border: 1px solid #34405c;
+  display: grid;
+  place-items: center;
+}
+.card-face.back::after {
+  content: "♠";
+  font-size: 2.4rem;
+  color: rgba(230,196,106,.5);
+  text-shadow: 0 1px 2px rgba(0,0,0,.6);
+}
+
+/* ---------- Front (face-up) ---------- */
+.card-face.front {
+  transform: rotateY(180deg);
+  background: linear-gradient(160deg, #f7f3ea, #e6dec6);
+  color: #1a1a1a;
+  border: 1px solid rgba(0,0,0,.2);
+  padding: 8px 10px;
+}
+
+.card-corner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.card-corner .rank {
+  font-size: clamp(0.95rem, 2.6vw, 1.2rem);
+  font-weight: 700;
+}
+.card-corner .suit {
+  font-size: clamp(0.85rem, 2.4vw, 1.05rem);
+}
+.card-corner.br {
+  align-self: flex-end;
+  transform: rotate(180deg);
+}
+
+.card-center {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: clamp(2.2rem, 8vw, 3.2rem);
+  filter: drop-shadow(0 1px 0 rgba(0,0,0,.1));
+}
+
+.card-label {
+  font-size: .72rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px 0 2px;
+  color: rgba(0,0,0,.55);
+  border-top: 1px dashed rgba(0,0,0,.2);
+}
+
+/* ---------- Suit / type theming on the front ---------- */
+.card[data-type="monster"][data-suit="♣"] .card-face.front,
+.card[data-type="monster"][data-suit="♠"] .card-face.front {
+  background: linear-gradient(160deg, #f5f5f0, #d8d6cf);
+  color: #15171c;
+}
+.card[data-type="monster"] .card-corner .suit,
+.card[data-type="monster"] .card-center { color: #15171c; }
+
+.card[data-type="weapon"] .card-face.front {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(230,196,106,.35), transparent 60%),
+    linear-gradient(160deg, #fff4d9, #f0d28b);
+  color: #3d2c00;
+}
+.card[data-type="weapon"] .card-corner .suit,
+.card[data-type="weapon"] .card-center { color: #b9821a; }
+
+.card[data-type="potion"] .card-face.front {
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(210,74,110,.25), transparent 60%),
+    linear-gradient(160deg, #ffe7ee, #f3b9c8);
+  color: #4a0e22;
+}
+.card[data-type="potion"] .card-corner .suit,
+.card[data-type="potion"] .card-center { color: #c0335a; }
+
+/* Carried-over card from previous room */
+.card[data-carry="true"] .card-face.front::after {
+  content: "carried";
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  font-size: .65rem;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: rgba(0,0,0,.55);
+  background: rgba(255,255,255,.55);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+/* ---------- Interactive states ---------- */
+.card:not(:disabled):not(.is-resolved) .flipper {
+  transition: transform var(--dur-slow) var(--ease),
+              filter var(--dur-fast) var(--ease);
+}
+.card:not(:disabled):hover .flipper {
+  filter: brightness(1.05);
+}
+.card:not(:disabled):hover.is-flipped .flipper {
+  transform: rotateY(180deg) translateY(-6px) scale(1.02);
+}
+.card:focus-visible .card-face.front,
+.card:focus-visible .card-face.back {
+  box-shadow: var(--shadow-glow), var(--shadow-2);
+}
+
+.card.is-resolved {
+  pointer-events: none;
+  opacity: .55;
+  filter: grayscale(.4);
+}
+.card.is-resolved.is-flipped .flipper {
+  transform: rotateY(180deg) scale(.96);
+}
+
+/* Game over: dim and disable any cards still in play */
+.room-grid.is-game-over .card:not(.is-resolved) {
+  pointer-events: none;
+  filter: grayscale(.5) brightness(.85);
+  opacity: .8;
+}
+
+/* "carried" idle highlight */
+.card[data-carry="true"]:not(.is-resolved) .card-face.front {
+  box-shadow: var(--shadow-2), 0 0 0 2px rgba(230,196,106,.45);
+}
+
+/* Highlight an action result */
+.card.is-resolving .flipper { animation: card-pop var(--dur) var(--ease); }

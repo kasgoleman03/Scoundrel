@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="dark" />
+  <meta name="description" content="Scoundrel — a solo dungeon-crawl card game playable in your browser." />
+  <meta name="theme-color" content="#0c0f14" />
+  <title>Scoundrel — Solo Dungeon Card Game</title>
+
+  <link rel="stylesheet" href="css/styles.css" />
+  <link rel="stylesheet" href="css/cards.css" />
+  <link rel="stylesheet" href="css/animations.css" />
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%231a1f2b'/%3E%3Ctext x='50%25' y='58%25' font-size='42' text-anchor='middle' fill='%23e6c46a' font-family='serif'%3E%E2%99%A0%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+  <a class="skip-link" href="#room">Skip to room</a>
+
+  <header class="topbar" role="banner">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true">♠</span>
+      <h1 class="brand-name">Scoundrel</h1>
+      <span class="brand-tag">Solo dungeon card game</span>
+    </div>
+
+    <nav class="controls" aria-label="Game controls">
+      <button id="btn-new-game" class="btn btn-primary" type="button">New Game</button>
+      <button id="btn-restart" class="btn" type="button" title="Restart current seed">Restart</button>
+      <button id="btn-help" class="btn btn-ghost" type="button" aria-haspopup="dialog" aria-controls="modal-help">Rules</button>
+      <button id="btn-debug" class="btn btn-ghost" type="button" aria-pressed="false" title="Toggle debug panel">Debug</button>
+    </nav>
+  </header>
+
+  <main class="layout">
+    <!-- =========================== HUD =========================== -->
+    <section class="hud" aria-label="Player status">
+      <div class="hud-card hud-health" aria-live="polite">
+        <div class="hud-label">Health</div>
+        <div class="hud-row">
+          <div class="health-bar" role="meter"
+               aria-valuemin="0" aria-valuemax="20" aria-valuenow="20"
+               aria-label="Health: 20 of 20">
+            <div id="health-fill" class="health-fill" style="width:100%"></div>
+            <div class="health-text">
+              <span id="health-value">20</span><span class="muted">/20</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="hud-card hud-weapon">
+        <div class="hud-label">Weapon</div>
+        <div id="weapon-slot" class="weapon-slot" aria-live="polite">
+          <div class="weapon-empty">— bare-handed —</div>
+        </div>
+      </div>
+
+      <div class="hud-card hud-stats">
+        <div class="stat">
+          <div class="hud-label">Room</div>
+          <div id="turn-counter" class="stat-value">1</div>
+        </div>
+        <div class="stat">
+          <div class="hud-label">Deck</div>
+          <div id="deck-count" class="stat-value">44</div>
+        </div>
+        <div class="stat">
+          <div class="hud-label">Discard</div>
+          <div id="discard-count" class="stat-value">0</div>
+        </div>
+      </div>
+
+      <div class="hud-card hud-action">
+        <div class="hud-label">Actions</div>
+        <button id="btn-avoid" class="btn btn-warn" type="button"
+                aria-describedby="avoid-help">Avoid Room</button>
+        <div id="avoid-help" class="hint">Cannot avoid twice in a row.</div>
+      </div>
+    </section>
+
+    <!-- =========================== ROOM =========================== -->
+    <section id="room" class="room-wrap" aria-label="Current room">
+      <div class="room-header">
+        <h2 class="room-title">The Room</h2>
+        <div id="room-progress" class="room-progress" aria-live="polite">
+          Resolved <span id="resolved-count">0</span>/<span id="resolved-cap">3</span>
+        </div>
+      </div>
+
+      <div id="room-grid" class="room-grid" role="list" aria-label="Cards in current room"></div>
+
+      <p id="empty-state" class="empty-state" hidden>
+        Press <strong>New Game</strong> to enter the dungeon.
+      </p>
+    </section>
+
+    <!-- =========================== LOG =========================== -->
+    <section class="log-wrap" aria-label="Action log">
+      <div class="log-header">
+        <h2 class="log-title">Action Log</h2>
+        <button id="btn-clear-log" class="btn btn-ghost btn-sm" type="button">Clear</button>
+      </div>
+      <ul id="log" class="log" role="log" aria-live="polite" aria-relevant="additions"></ul>
+    </section>
+
+    <!-- =========================== DEBUG =========================== -->
+    <aside id="debug-panel" class="debug-panel" hidden aria-label="Debug panel">
+      <h3>Debug</h3>
+      <div class="debug-row">
+        <label for="debug-seed">Seed</label>
+        <input id="debug-seed" type="text" inputmode="numeric" placeholder="auto" />
+        <button id="btn-apply-seed" class="btn btn-sm" type="button">New Game with Seed</button>
+      </div>
+      <details>
+        <summary>Deck order (top → bottom)</summary>
+        <ol id="debug-deck" class="debug-deck"></ol>
+      </details>
+      <details>
+        <summary>Discard pile</summary>
+        <ol id="debug-discard" class="debug-deck"></ol>
+      </details>
+    </aside>
+  </main>
+
+  <!-- =========================== MODALS =========================== -->
+  <div id="modal-help" class="modal" role="dialog" aria-modal="true"
+       aria-labelledby="modal-help-title" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel" role="document">
+      <header class="modal-head">
+        <h2 id="modal-help-title">How to Play Scoundrel</h2>
+        <button class="btn btn-ghost btn-sm" type="button" data-close aria-label="Close rules">✕</button>
+      </header>
+      <div class="modal-body">
+        <p><strong>Goal:</strong> Clear the dungeon deck without losing all 20 health.</p>
+
+        <h3>Deck</h3>
+        <p>A 44-card deck: 26 Monsters (♣/♠ 2–14), 9 Weapons (♦ 2–10), 9 Potions (♥ 2–10).</p>
+
+        <h3>Each Room</h3>
+        <ol>
+          <li>Draw cards until <strong>4 are visible</strong>.</li>
+          <li>Choose to <strong>Avoid</strong> (place all 4 on the bottom in order — cannot avoid twice in a row)
+              or <strong>Face</strong> the room.</li>
+          <li>If you Face it, resolve <strong>3 of 4 cards</strong> in any order. The 4th carries to the next room.</li>
+        </ol>
+
+        <h3>Cards</h3>
+        <ul>
+          <li><strong>Weapon ♦</strong>: equip it. Discards your previous weapon and any monsters stacked on it.</li>
+          <li><strong>Potion ♥</strong>: heal by its value (max 20). Only the <em>first potion</em> in a room heals; later potions are wasted.</li>
+          <li><strong>Monster ♣/♠</strong>: fight bare-handed (take full damage), or with your weapon.</li>
+        </ul>
+
+        <h3>Weapon Rule (non-increasing)</h3>
+        <p>Your weapon can only kill monsters in <em>non-increasing</em> order. After defeating a monster of value
+           <em>N</em>, you can only use the weapon on monsters of value ≤ <em>N</em>. Otherwise you must fight bare-handed.</p>
+
+        <p class="example"><strong>Example:</strong> Equip ♦6. Defeat ♣10 (damage 10−6=4). Next monster ♠9
+           is too big (9 &gt; 10? no — 9 ≤ 10, OK). After ♣10 stack, you can fight ≤10. After ♠9, only ≤9. And so on.</p>
+
+        <h3>Scoring</h3>
+        <ul>
+          <li><strong>Win</strong> (deck cleared): score = remaining health.</li>
+          <li><strong>Loss</strong> (health ≤ 0): score = −(sum of monster values left in the deck).</li>
+        </ul>
+
+        <h3>Keyboard</h3>
+        <ul>
+          <li><kbd>1</kbd>–<kbd>4</kbd> pick a card</li>
+          <li><kbd>A</kbd> Avoid</li>
+          <li><kbd>N</kbd> New Game · <kbd>R</kbd> Restart · <kbd>?</kbd> Rules</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-end" class="modal" role="dialog" aria-modal="true"
+       aria-labelledby="modal-end-title" hidden>
+    <div class="modal-backdrop" data-close></div>
+    <div class="modal-panel" role="document">
+      <header class="modal-head">
+        <h2 id="modal-end-title">Game Over</h2>
+        <button class="btn btn-ghost btn-sm" type="button" data-close aria-label="Close">✕</button>
+      </header>
+      <div class="modal-body">
+        <p id="end-summary" class="end-summary"></p>
+        <p id="end-score" class="end-score"></p>
+        <div class="modal-actions">
+          <button id="btn-end-new" class="btn btn-primary" type="button">New Game</button>
+          <button id="btn-end-restart" class="btn" type="button">Replay Seed</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">
+    <span>Scoundrel — built with vanilla HTML, CSS &amp; JS.</span>
+    <span id="seed-readout" class="muted"></span>
+  </footer>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
