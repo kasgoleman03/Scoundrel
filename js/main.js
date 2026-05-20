@@ -22,6 +22,7 @@ import {
   hideEndModal,
   shakeRoom,
   pulseCard,
+  preloadArt,
 } from "./ui.js";
 
 // ---------------------------------------------------------
@@ -44,6 +45,7 @@ function persist() {
 // ---------------------------------------------------------
 document.addEventListener("DOMContentLoaded", () => {
   bindDOM();
+  preloadArt();
   wireControls();
   wireKeyboard();
   wireModals();

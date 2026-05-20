@@ -118,18 +118,39 @@ specific seed (handy for testing or sharing puzzles).
 scoundrel/
 ├── index.html            # Page structure: HUD, room, log, modals, controls
 ├── README.md             # You are here
+├── Assets/               # Card artwork (referenced by deck.js → imageForCard)
+│   ├── heart.jpg                          # All potions (♥)
+│   ├── club-1.jpg / club-2.jpg / club-3.jpg     # Skeleton / Wraith / Dire Wolf
+│   ├── spade-1.jpg / spade-2.jpg / spade-3.jpg  # Goblin / Knight / Dragon
+│   └── diamond-1.jpg / diamond-2.jpg / diamond-3.jpg # Crossbow / Axe / Sword
 ├── css/
 │   ├── styles.css        # Theme tokens, layout, HUD, log, modals, a11y
-│   ├── cards.css         # Card sizing, faces, suit/type theming, states
+│   ├── cards.css         # Card sizing, image-driven front, faces, states
 │   └── animations.css    # Keyframes (flip, pulse, shake, glow, modal-in)
 └── js/
     ├── main.js           # Bootstrap, event wiring, persistence, hotkeys
     ├── game.js           # Pure rules engine (state model + actions + scoring)
-    ├── deck.js           # Card definitions and dungeon deck construction
+    ├── deck.js           # Card definitions, deck builder, image/art-name mapping
     ├── rng.js            # Mulberry32 seedable PRNG + Fisher–Yates shuffle
     ├── ui.js             # All DOM rendering (HUD, room cards, log, modals)
     └── storage.js        # Tiny LocalStorage wrapper for persistence
 ```
+
+### Artwork tiering
+
+The deck maps `(suit, value)` to one of 10 illustrations. Tiers within a
+suit reflect the strength of the card:
+
+| Suit | Tier 1 | Tier 2 | Tier 3 |
+| ---- | ------ | ------ | ------ |
+| ♣ Clubs    | values **2–5** — Skeleton  | values **6–10** — Wraith        | values **11–14 (J/Q/K/A)** — Dire Wolf |
+| ♠ Spades   | values **2–5** — Goblin    | values **6–10** — Armored Knight | values **11–14 (J/Q/K/A)** — Dragon |
+| ♦ Diamonds | values **2–4** — Crossbow  | values **5–7** — War-axe        | values **8–10** — Winged Sword |
+| ♥ Hearts   | _All potions use_ `heart.jpg` | — | — |
+
+The mapping logic lives in `js/deck.js` → `imageForCard(card)` and
+`artworkName(card)`. Drop in differently-named files? Just edit those
+two functions.
 
 ### Responsibilities
 

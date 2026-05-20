@@ -5,7 +5,7 @@
 // game state; main.js drives game logic, then calls render().
 // =========================================================
 
-import { TYPE, rankLabel, cardLabel } from "./deck.js";
+import { TYPE, rankLabel, cardLabel, imageForCard, artworkName } from "./deck.js";
 import { canAvoid, describeWeapon, MAX_HEALTH, ROOM_SIZE, RESOLVE_PER_ROOM } from "./game.js";
 
 const $ = (sel, root = document) => root.querySelector(sel);
@@ -81,6 +81,11 @@ function renderWeapon(state) {
     dom.weaponSlot.setAttribute("aria-label", "No weapon equipped.");
     return;
   }
+  // Synthesize a card object so artwork helpers work.
+  const weaponCard = { suit: "♦", value: w.value, type: TYPE.WEAPON, id: `w-d-${w.value}` };
+  const artName = artworkName(weaponCard);
+  const artPath = imageForCard(weaponCard);
+
   const stackHTML = w.stack.length
     ? `<div class="weapon-stack" aria-label="Defeated stack">
          ${w.stack.map((c) => `<span class="chip">${c.suit}${rankLabel(c.value)}</span>`).join("")}
@@ -88,16 +93,19 @@ function renderWeapon(state) {
     : "";
 
   dom.weaponSlot.innerHTML = `
-    <div class="weapon-card" aria-hidden="true">♦${w.value}</div>
+    <div class="weapon-card" aria-hidden="true"
+         style="background-image: linear-gradient(180deg, rgba(0,0,0,.15), rgba(0,0,0,.55)), url('${artPath}');">
+      <span class="weapon-card-rank">♦${w.value}</span>
+    </div>
     <div class="weapon-meta">
-      <div class="line">Value <strong>${w.value}</strong></div>
+      <div class="line"><strong>${artName}</strong> — value <strong>${w.value}</strong></div>
       <div class="last">Last defeated: <strong>${w.lastDefeatedLabel}</strong></div>
       ${stackHTML}
     </div>`;
   const last = w.lastDefeated === null ? "none yet" : `value ${w.lastDefeated}`;
   dom.weaponSlot.setAttribute(
     "aria-label",
-    `Weapon ♦${w.value}. Last defeated: ${last}. Stack size ${w.stack.length}.`,
+    `Weapon: ${artName}, value ${w.value}. Last defeated: ${last}. Stack size ${w.stack.length}.`,
   );
 }
 
@@ -190,7 +198,9 @@ function a11yLabel(card, idx) {
   const suitName = ({
     "♣": "clubs", "♠": "spades", "♦": "diamonds", "♥": "hearts",
   })[card.suit];
-  return `Slot ${idx + 1}: ${typeName} ${rank} of ${suitName}. Activate to resolve.`;
+  const art = artworkName(card);
+  const artBit = art ? ` (${art})` : "";
+  return `Slot ${idx + 1}: ${typeName} ${rank} of ${suitName}${artBit}. Activate to resolve.`;
 }
 
 function cardInnerHTML(card) {
@@ -198,22 +208,52 @@ function cardInnerHTML(card) {
   const label = card.type === TYPE.MONSTER ? "Monster"
               : card.type === TYPE.WEAPON  ? "Weapon"
               : "Potion";
+  const art = imageForCard(card);
+  const artName = artworkName(card);
+
   return `
     <div class="flipper">
-      <div class="card-face back" aria-hidden="true"></div>
+      <div class="card-face back" aria-hidden="true">
+        <div class="back-frame">
+          <div class="back-rune" aria-hidden="true">${card.suit}</div>
+        </div>
+      </div>
       <div class="card-face front">
+        <img class="card-art"
+             src="${art}"
+             alt=""
+             aria-hidden="true"
+             decoding="async"
+             draggable="false" />
+        <div class="card-grain" aria-hidden="true"></div>
         <div class="card-corner tl">
           <span class="rank">${rank}</span>
           <span class="suit">${card.suit}</span>
         </div>
-        <div class="card-center" aria-hidden="true">${card.suit}</div>
-        <div class="card-corner br">
-          <span class="rank">${rank}</span>
-          <span class="suit">${card.suit}</span>
+        <div class="card-banner">
+          <span class="banner-label">${label}</span>
+          <span class="banner-art" title="${artName}">${artName}</span>
         </div>
-        <div class="card-label">${label}</div>
       </div>
     </div>`;
+}
+
+/**
+ * Preload all card artwork so the first flip never shows a half-loaded image.
+ * The deck only references 10 unique files, so this is cheap.
+ */
+export function preloadArt() {
+  const paths = [
+    "Assets/heart.jpg",
+    "Assets/club-1.jpg",    "Assets/club-2.jpg",    "Assets/club-3.jpg",
+    "Assets/spade-1.jpg",   "Assets/spade-2.jpg",   "Assets/spade-3.jpg",
+    "Assets/diamond-1.jpg", "Assets/diamond-2.jpg", "Assets/diamond-3.jpg",
+  ];
+  for (const p of paths) {
+    const img = new Image();
+    img.decoding = "async";
+    img.src = p;
+  }
 }
 
 /** Flash a card briefly (used right after resolution for feedback). */
@@ -257,6 +297,13 @@ export function logEntry(text, tone = "info") {
 }
 function pad(n) { return n < 10 ? "0" + n : "" + n; }
 
+/** Build a label like "Wraith (♣8)" combining art name + rank/suit. */
+function namedCard(card) {
+  const art = artworkName(card);
+  const base = cardLabel(card);
+  return art ? `${art} (${base})` : base;
+}
+
 /**
  * Convert game.events[] (from a single action) into readable log entries.
  */
@@ -273,30 +320,30 @@ export function logEventsFromState(state) {
         // No log noise for blocked actions; UI already shakes.
         break;
       case "equipped":
-        logEntry(`Equipped <strong>${cardLabel(ev.card)}</strong>.`, "accent");
+        logEntry(`Equipped <strong>${namedCard(ev.card)}</strong>.`, "accent");
         break;
       case "potion-wasted":
-        logEntry(`Potion <strong>${cardLabel(ev.card)}</strong> wasted (already drank one this room).`, "warn");
+        logEntry(`Potion <strong>${namedCard(ev.card)}</strong> wasted (already drank one this room).`, "warn");
         break;
       case "healed":
         if (ev.amount > 0) {
-          logEntry(`Drank <strong>${cardLabel(ev.card)}</strong> — healed <span class="v">+${ev.amount}</span> → <span class="v">${ev.after}</span>.`, "good");
+          logEntry(`Drank <strong>${namedCard(ev.card)}</strong> — healed <span class="v">+${ev.amount}</span> → <span class="v">${ev.after}</span>.`, "good");
         } else {
-          logEntry(`Drank <strong>${cardLabel(ev.card)}</strong> — already at full health.`, "info");
+          logEntry(`Drank <strong>${namedCard(ev.card)}</strong> — already at full health.`, "info");
         }
         break;
       case "fought-weapon":
         if (ev.damage > 0) {
-          logEntry(`Fought <strong>${cardLabel(ev.card)}</strong> with ♦${ev.weaponValue}. Took <span class="v">${ev.damage}</span> damage.`, "bad");
+          logEntry(`Fought <strong>${namedCard(ev.card)}</strong> with ♦${ev.weaponValue}. Took <span class="v">${ev.damage}</span> damage.`, "bad");
         } else {
-          logEntry(`Defeated <strong>${cardLabel(ev.card)}</strong> cleanly with ♦${ev.weaponValue}.`, "good");
+          logEntry(`Defeated <strong>${namedCard(ev.card)}</strong> cleanly with ♦${ev.weaponValue}.`, "good");
         }
         break;
       case "fought-bare":
         if (ev.reason === "weapon-locked") {
-          logEntry(`Weapon locked (must be ≤ last defeated). Fought <strong>${cardLabel(ev.card)}</strong> bare-handed — <span class="v">−${ev.damage}</span> HP.`, "bad");
+          logEntry(`Weapon locked (must be ≤ last defeated). Fought <strong>${namedCard(ev.card)}</strong> bare-handed — <span class="v">−${ev.damage}</span> HP.`, "bad");
         } else {
-          logEntry(`Bare-handed vs <strong>${cardLabel(ev.card)}</strong> — <span class="v">−${ev.damage}</span> HP.`, "bad");
+          logEntry(`Bare-handed vs <strong>${namedCard(ev.card)}</strong> — <span class="v">−${ev.damage}</span> HP.`, "bad");
         }
         break;
       case "won":

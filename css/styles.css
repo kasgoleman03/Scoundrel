@@ -62,12 +62,31 @@ body {
                "Helvetica Neue", Arial, sans-serif;
   color: var(--text);
   background:
-    radial-gradient(1100px 700px at 80% -10%, rgba(110,168,255,.07), transparent 60%),
-    radial-gradient(900px 600px at -10% 110%, rgba(230,196,106,.06), transparent 60%),
-    linear-gradient(180deg, var(--bg-0), var(--bg-1) 60%, var(--bg-0));
+    radial-gradient(1100px 700px at 80% -10%, rgba(110,168,255,.08), transparent 60%),
+    radial-gradient(900px 600px at -10% 110%, rgba(230,196,106,.07), transparent 60%),
+    linear-gradient(180deg, #06080d, #0a0e16 60%, #050810);
   min-height: 100dvh;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  position: relative;
+}
+/* Soft starfield to harmonize with the card artwork. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  opacity: .35;
+  background-image:
+    radial-gradient(1px 1px at 7%  12%, rgba(255,255,255,.6) 50%, transparent 51%),
+    radial-gradient(1px 1px at 21% 78%, rgba(255,255,255,.4) 50%, transparent 51%),
+    radial-gradient(1px 1px at 35% 22%, rgba(255,255,255,.5) 50%, transparent 51%),
+    radial-gradient(1px 1px at 48% 64%, rgba(255,255,255,.35) 50%, transparent 51%),
+    radial-gradient(1px 1px at 62% 14%, rgba(255,255,255,.55) 50%, transparent 51%),
+    radial-gradient(1px 1px at 73% 47%, rgba(255,255,255,.3) 50%, transparent 51%),
+    radial-gradient(1px 1px at 84% 82%, rgba(255,255,255,.5) 50%, transparent 51%),
+    radial-gradient(1px 1px at 93% 28%, rgba(255,255,255,.35) 50%, transparent 51%);
 }
 
 h1, h2, h3 { margin: 0; font-weight: 600; letter-spacing: -0.01em; }
@@ -320,19 +339,31 @@ kbd {
   font-style: italic;
 }
 .weapon-card {
+  position: relative;
   display: inline-flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
   width: 44px;
   height: 60px;
   border-radius: 8px;
-  background: linear-gradient(160deg, #2a2615, #1a1709);
+  background-color: #1a1709;
+  background-size: cover;
+  background-position: center;
   border: 1px solid #635022;
-  color: var(--suit-diamond);
-  font-weight: 700;
-  font-size: 1.1rem;
-  box-shadow: var(--shadow-1);
+  box-shadow: var(--shadow-1), inset 0 0 12px rgba(0,0,0,.4);
   flex: 0 0 auto;
+  overflow: hidden;
+}
+.weapon-card .weapon-card-rank {
+  display: block;
+  width: 100%;
+  text-align: center;
+  padding: 2px 0;
+  font-weight: 800;
+  font-size: .85rem;
+  color: var(--suit-diamond);
+  background: linear-gradient(180deg, rgba(0,0,0,0), rgba(0,0,0,.75));
+  text-shadow: 0 1px 2px rgba(0,0,0,.8);
 }
 .weapon-meta {
   display: flex;

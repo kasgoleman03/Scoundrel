@@ -31,6 +31,65 @@ export function cardLabel(card) {
   return `${card.suit}${rankLabel(card.value)}`;
 }
 
+/**
+ * Image asset path for a given card, using the project's Assets/ folder.
+ *
+ * Tier mapping (all monochrome dark-fantasy art):
+ *   ♥ Potion  → heart.jpg (single illustration for every potion)
+ *   ♣ Club    → club-1 (val 2–5)   skeleton
+ *               club-2 (val 6–10)  wraith
+ *               club-3 (val 11–14) dire wolf       (J/Q/K/A)
+ *   ♠ Spade   → spade-1 (val 2–5)   goblin
+ *               spade-2 (val 6–10)  armored knight
+ *               spade-3 (val 11–14) dragon          (J/Q/K/A)
+ *   ♦ Diamond → diamond-1 (val 2–4) crossbow
+ *               diamond-2 (val 5–7) war-axe
+ *               diamond-3 (val 8–10) winged sword
+ */
+export function imageForCard(card) {
+  const v = card.value;
+  switch (card.suit) {
+    case SUIT.HEART:
+      return "Assets/heart.jpg";
+    case SUIT.CLUB: {
+      const tier = v <= 5 ? 1 : v <= 10 ? 2 : 3;
+      return `Assets/club-${tier}.jpg`;
+    }
+    case SUIT.SPADE: {
+      const tier = v <= 5 ? 1 : v <= 10 ? 2 : 3;
+      return `Assets/spade-${tier}.jpg`;
+    }
+    case SUIT.DIAMOND: {
+      const tier = v <= 4 ? 1 : v <= 7 ? 2 : 3;
+      return `Assets/diamond-${tier}.jpg`;
+    }
+    default:
+      return "";
+  }
+}
+
+/** Thematic display name for the artwork (used in aria-labels / titles). */
+export function artworkName(card) {
+  const v = card.value;
+  if (card.suit === SUIT.HEART) return "Heart Potion";
+  if (card.suit === SUIT.CLUB) {
+    if (v <= 5)  return "Skeleton";
+    if (v <= 10) return "Wraith";
+    return "Dire Wolf";
+  }
+  if (card.suit === SUIT.SPADE) {
+    if (v <= 5)  return "Goblin";
+    if (v <= 10) return "Armored Knight";
+    return "Dragon";
+  }
+  if (card.suit === SUIT.DIAMOND) {
+    if (v <= 4) return "Crossbow";
+    if (v <= 7) return "War-axe";
+    return "Winged Sword";
+  }
+  return "";
+}
+
 function make(id, type, suit, value) {
   return { id, type, suit, value };
 }
