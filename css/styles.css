@@ -583,14 +583,17 @@ kbd {
   flex-wrap: wrap;
 }
 
-/* "Felled by" card slot inside the defeat modal */
+/* "Felled by" card slot inside the defeat modal.
+   Important: the pop animation lives on .end-card-wrap, NOT on .card.
+   The .card element owns `perspective: 900px` for the 3D flip; if we
+   applied a `transform: scale(...)` to it directly some browsers flatten
+   the perspective and the back face renders instead of the artwork. */
 .end-card-slot {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   margin: 4px 0 18px;
-  perspective: 1000px;
 }
 .end-card-caption {
   font-size: .72rem;
@@ -608,30 +611,32 @@ kbd {
   width: 160px;
   aspect-ratio: 2 / 3;
   border-radius: var(--radius);
-  animation: defeat-flash 700ms cubic-bezier(.2,.8,.2,1);
 }
-.end-card-target .card {
+.end-card-target.is-popping {
+  animation: defeat-flash 700ms cubic-bezier(.2,.8,.2,1) both;
+}
+.end-card-wrap {
+  position: absolute;
+  inset: 0;
+  display: block;
+  transform-origin: 50% 60%;
+  will-change: transform, opacity, filter;
+}
+.end-card-wrap.is-popping {
+  animation: card-defeat-pop 700ms cubic-bezier(.2,.8,.2,1) both;
+}
+.end-card-wrap .card {
   width: 100%;
   height: 100%;
   cursor: default;
-}
-.end-card-target .card.is-modal-card {
-  /* card-pop animation overrides the per-card entrance stagger */
+  /* Cancel the staggered .card-enter on this card — pop-defeat is
+     applied to the wrapper, not the card itself. */
   animation: none;
 }
-.end-card-target .card.pop-defeat {
-  animation: card-defeat-pop 700ms cubic-bezier(.2,.8,.2,1) both;
-  transform-origin: 50% 60%;
-}
-/* Make absolutely sure the modal card stays face-up even though the
-   shared .card rules normally toggle .is-flipped on roomGrid cards. */
-.end-card-target .card.is-flipped .flipper {
-  transform: rotateY(180deg);
-}
-.end-card-target .card.is-flipped:hover .flipper {
-  /* No hover lift inside the modal */
-  transform: rotateY(180deg);
-  filter: none;
+.end-card-wrap .card:focus,
+.end-card-wrap .card:focus-visible {
+  outline: none;
+  box-shadow: none;
 }
 
 /* ---------- Debug panel ---------- */

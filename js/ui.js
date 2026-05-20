@@ -372,13 +372,38 @@
   // ---------------------------------------------------------
   // End-game modal
   // ---------------------------------------------------------
+
+  /**
+   * Recover the killing card from state when it wasn't explicitly stored
+   * (e.g. a saved "lost" state from a previous version of the code).
+   * The killing blow is always the last resolved monster card.
+   */
+  function deriveKilledBy(state) {
+    if (state.killedBy) return state.killedBy;
+    if (Array.isArray(state.room)) {
+      // The card that just killed the player is the most recently
+      // resolved slot — check from the end.
+      for (let i = state.room.length - 1; i >= 0; i--) {
+        const s = state.room[i];
+        if (s && s.resolved && s.card && s.card.type === TYPE.MONSTER) return s.card;
+      }
+    }
+    if (Array.isArray(state.discard)) {
+      for (let i = state.discard.length - 1; i >= 0; i--) {
+        const c = state.discard[i];
+        if (c && c.type === TYPE.MONSTER) return c;
+      }
+    }
+    return null;
+  }
+
   function renderEndModal(state) {
-    const modal = document.getElementById("modal-end");
-    const title = document.getElementById("modal-end-title");
+    const modal   = document.getElementById("modal-end");
+    const title   = document.getElementById("modal-end-title");
     const summary = document.getElementById("end-summary");
-    const score = document.getElementById("end-score");
-    const slot = document.getElementById("end-card-slot");
-    const target = document.getElementById("end-card-target");
+    const score   = document.getElementById("end-score");
+    const slot    = document.getElementById("end-card-slot");
+    const target  = document.getElementById("end-card-target");
 
     if (state.status === "won") {
       title.textContent = "Victory";
@@ -387,44 +412,69 @@
       score.classList.remove("is-loss");
       slot.hidden = true;
       target.innerHTML = "";
-    } else {
-      title.textContent = "Defeat";
-      const remaining = -state.score;
-      summary.textContent = `You fell in the dungeon. ${remaining} monster point${remaining === 1 ? "" : "s"} were left.`;
-      score.textContent = `Score: ${state.score}`;
-      score.classList.add("is-loss");
-
-      if (state.killedBy) {
-        // Build a face-up card node identical to the room cards.
-        const card = state.killedBy;
-        const art = artworkName(card);
-        const fakeSlot = { card, resolved: false, carry: false };
-        const node = makeCardNode(fakeSlot, 0);
-        node.classList.add("is-flipped", "is-modal-card", "pop-defeat");
-        node.setAttribute("aria-label",
-          `Felled by ${a11yLabel(card, 0).replace(/^Slot \d+: /, "").replace(/\. Activate to resolve\.$/, "")}.`);
-        node.removeAttribute("role");
-        node.disabled = true;
-
-        target.innerHTML = "";
-        target.appendChild(node);
-        // Drop the animation class after it finishes so a re-open of
-        // the modal can replay it cleanly.
-        node.addEventListener("animationend", () => {
-          node.classList.remove("pop-defeat");
-        }, { once: true });
-
-        slot.hidden = false;
-      } else {
-        slot.hidden = true;
-        target.innerHTML = "";
-      }
+      target.classList.remove("is-popping");
+      modal.hidden = false;
+      return;
     }
-    modal.hidden = false;
+
+    // Loss flow.
+    title.textContent = "Defeat";
+    const remaining = -state.score;
+    summary.textContent = `You fell in the dungeon. ${remaining} monster point${remaining === 1 ? "" : "s"} were left.`;
+    score.textContent = `Score: ${state.score}`;
+    score.classList.add("is-loss");
+
+    const killer = deriveKilledBy(state);
+    if (killer) {
+      // Build a face-up card node (same renderer as room cards) inside
+      // a wrapper. The wrapper owns the pop animation so the card's
+      // 3D perspective stays untouched.
+      const card = killer;
+      const fakeSlot = { card, resolved: false, carry: false };
+      const node = makeCardNode(fakeSlot, 0);
+      node.classList.add("is-flipped");
+      node.setAttribute(
+        "aria-label",
+        `Felled by ${a11yLabel(card, 0).replace(/^Slot \d+: /, "").replace(/\. Activate to resolve\.$/, "")}.`,
+      );
+      node.removeAttribute("role");
+      node.disabled = true;
+      node.tabIndex = -1;
+
+      const wrap = document.createElement("div");
+      wrap.className = "end-card-wrap";
+      wrap.appendChild(node);
+
+      target.innerHTML = "";
+      target.appendChild(wrap);
+      target.classList.remove("is-popping"); // reset
+      slot.hidden = false;
+
+      // Show the modal FIRST, then trigger the animation on the next
+      // frame so the wrapper is already in the rendering tree. Using
+      // double-rAF guarantees a paint happens at the keyframe-0 state
+      // before we start ticking — otherwise some browsers skip the
+      // animation entirely.
+      modal.hidden = false;
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          target.classList.add("is-popping");
+          wrap.classList.add("is-popping");
+        });
+      });
+    } else {
+      slot.hidden = true;
+      target.innerHTML = "";
+      target.classList.remove("is-popping");
+      modal.hidden = false;
+    }
   }
 
   function hideEndModal() {
-    document.getElementById("modal-end").hidden = true;
+    const modal = document.getElementById("modal-end");
+    const target = document.getElementById("end-card-target");
+    if (target) target.classList.remove("is-popping");
+    if (modal) modal.hidden = true;
   }
 
   NS.UI = {
