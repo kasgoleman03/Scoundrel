@@ -255,17 +255,31 @@
               filter var(--dur-fast) var(--ease);
 }
 
-/* Hover lift — gated to devices that truly support hover.
-   On touch devices :hover is "sticky" after a tap and would leave the
-   just-tapped card in a lifted/transformed state until the user tapped
-   somewhere else, which made it appear to stay on the back face. */
+/* Hover indication — gated to devices that truly support hover.
+   We deliberately do NOT apply a transform to .flipper here. The
+   .flipper is already at rotateY(180deg) (its face-up state); adding
+   any additional transform causes CSS to matrix-interpolate between
+   the two rotated states, which can briefly rotate the card through
+   rotateY(0deg) and reveal the back face mid-hover. So we keep the
+   card perfectly still and use a glowing ring + a faint brightness
+   bump to indicate "this is the card you'd pick" without changing
+   what the user is looking at. */
 @media (hover: hover) {
-  .card:not(:disabled):hover .flipper {
-    filter: brightness(1.08);
+  /* Glow ring around the face — clear "this is selectable" cue. */
+  .card:not(:disabled):not(.is-resolved):hover .card-face.front {
+    box-shadow:
+      var(--shadow-2),
+      0 0 0 2px rgba(230, 196, 106, .65),
+      0 0 22px rgba(230, 196, 106, .28);
+    transition: box-shadow var(--dur-fast) var(--ease);
   }
-  .card:not(:disabled):hover.is-flipped .flipper {
-    transform: rotateY(180deg) translateY(-6px) scale(1.02);
+  /* Brighten the artwork itself (not .flipper, which would flatten
+     its preserve-3d context and break the flip). */
+  .card:not(:disabled):not(.is-resolved):hover .card-art {
+    filter: brightness(1.08) contrast(1.03) saturate(1.04);
+    transition: filter var(--dur-fast) var(--ease);
   }
+  .card:not(:disabled):not(.is-resolved):hover { cursor: pointer; }
 }
 
 .card:focus-visible .card-face.front,
