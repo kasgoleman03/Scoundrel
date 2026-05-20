@@ -5,32 +5,43 @@
 // single key so that:
 //   - reloading the tab continues the same run
 //   - "Restart" can reuse the same starting seed
+//
+// Note: when running from a `file://` URL, localStorage is
+// scoped per file path. Persistence may or may not survive
+// across sessions depending on the browser, but the game
+// still works fine if it doesn't.
 // =========================================================
 
-const KEY = "scoundrel.v1.state";
+(function () {
+  "use strict";
 
-export function save(state) {
-  try {
-    localStorage.setItem(KEY, JSON.stringify(state));
-  } catch (err) {
-    // Storage may be unavailable (private mode, full quota, etc.) — non-fatal.
-    console.warn("Scoundrel: could not save state", err);
+  const NS = (window.Scoundrel = window.Scoundrel || {});
+  const KEY = "scoundrel.v1.state";
+
+  function save(state) {
+    try {
+      localStorage.setItem(KEY, JSON.stringify(state));
+    } catch (err) {
+      console.warn("Scoundrel: could not save state", err);
+    }
   }
-}
 
-export function load() {
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!parsed || typeof parsed !== "object") return null;
-    return parsed;
-  } catch (err) {
-    console.warn("Scoundrel: could not load state", err);
-    return null;
+  function load() {
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== "object") return null;
+      return parsed;
+    } catch (err) {
+      console.warn("Scoundrel: could not load state", err);
+      return null;
+    }
   }
-}
 
-export function clear() {
-  try { localStorage.removeItem(KEY); } catch { /* noop */ }
-}
+  function clear() {
+    try { localStorage.removeItem(KEY); } catch (e) { /* noop */ }
+  }
+
+  NS.Storage = { save, load, clear };
+})();

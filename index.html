@@ -200,6 +200,19 @@
     <span id="seed-readout" class="muted"></span>
   </footer>
 
-  <script type="module" src="js/main.js"></script>
+  <!--
+    Plain <script> tags (no ES modules) so the game also runs by
+    opening index.html directly from the filesystem — no local
+    server required. Load order must follow the dependency graph:
+       rng → deck → storage → game → ui → main
+    `defer` lets the browser parse all scripts in order but execute
+    them after the DOM is ready (DOMContentLoaded fires in main.js).
+  -->
+  <script defer src="js/rng.js"></script>
+  <script defer src="js/deck.js"></script>
+  <script defer src="js/storage.js"></script>
+  <script defer src="js/game.js"></script>
+  <script defer src="js/ui.js"></script>
+  <script defer src="js/main.js"></script>
 </body>
 </html>

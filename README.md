@@ -12,24 +12,42 @@ a one-player dungeon crawl played with a standard deck of cards. Built with
 
 ## Run
 
-Because the app uses ES modules, browsers won't load it directly from `file://`
-URLs. Serve the folder over HTTP — any of these works:
+The game ships as **plain, dependency-free static files**. There are
+three ways to play it — pick whichever you prefer.
+
+### 1. Double-click `index.html`
+
+Open the folder, double-click `index.html`, and the game opens in your
+default browser. No terminal, no server, no build step.
+
+> This works because the scripts are loaded as ordinary `<script>` tags
+> (not ES modules), so the browser is happy to load them straight from
+> the file system.
+
+### 2. Host it on GitHub Pages
+
+1. Push the folder to a GitHub repo.
+2. In the repo go to **Settings → Pages**.
+3. Source: **Deploy from branch**, branch: `main`, folder: `/ (root)`.
+4. Wait a minute and visit the URL GitHub gives you. Anyone with the
+   link can play.
+
+### 3. Run a local web server (optional)
+
+Useful only if you want to develop with live-reload or experiment
+with HTTPS-only browser features. Any static server works:
 
 ```bash
-# Python (built-in)
 python3 -m http.server 8080
-
-# Node (one-liners)
 npx serve .
-npx http-server -p 8080
 ```
 
-Then open <http://localhost:8080/> in any modern browser. The game runs
-entirely on the client — no backend, no network calls.
+Then visit <http://localhost:8080/>.
 
-> The game persists itself to `localStorage` so reloading the page resumes
-> your current run. Use the in-game **New Game** to start over, or
-> `scoundrel.reset()` in the dev console to wipe saved state.
+> The game persists itself to `localStorage` so reloading the page
+> resumes your current run. Use the in-game **New Game** to start
+> over, or call `Scoundrel.debug.reset()` in the dev console to wipe
+> saved state.
 
 ---
 
