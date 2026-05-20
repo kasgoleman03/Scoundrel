@@ -254,12 +254,20 @@
   transition: transform var(--dur-slow) var(--ease),
               filter var(--dur-fast) var(--ease);
 }
-.card:not(:disabled):hover .flipper {
-  filter: brightness(1.08);
+
+/* Hover lift — gated to devices that truly support hover.
+   On touch devices :hover is "sticky" after a tap and would leave the
+   just-tapped card in a lifted/transformed state until the user tapped
+   somewhere else, which made it appear to stay on the back face. */
+@media (hover: hover) {
+  .card:not(:disabled):hover .flipper {
+    filter: brightness(1.08);
+  }
+  .card:not(:disabled):hover.is-flipped .flipper {
+    transform: rotateY(180deg) translateY(-6px) scale(1.02);
+  }
 }
-.card:not(:disabled):hover.is-flipped .flipper {
-  transform: rotateY(180deg) translateY(-6px) scale(1.02);
-}
+
 .card:focus-visible .card-face.front,
 .card:focus-visible .card-face.back {
   box-shadow: var(--shadow-glow), var(--shadow-2);

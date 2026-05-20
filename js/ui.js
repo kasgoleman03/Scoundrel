@@ -133,27 +133,53 @@
       existing.set(node.dataset.cardId, node);
     }
 
-    const frag = document.createDocumentFragment();
+    // Pass 1: build the desired DOM order. New cards are created without
+    // `is-flipped` so they begin face-down and animate in afterwards.
+    // Existing cards stay where they are; we only insertBefore-shuffle
+    // them if the order changed (re-parenting through a fragment can
+    // restart 3D transitions on iOS/Safari and cause a flash).
+    const desired = [];
+    const freshCards = [];
     state.room.forEach((slot, idx) => {
       const id = slot.card.id;
       let node = existing.get(id);
       if (!node) {
         node = makeCardNode(slot, idx);
-        if (animateNew) {
-          requestAnimationFrame(() => node.classList.add("is-flipped"));
-        } else {
-          node.classList.add("is-flipped");
-        }
+        freshCards.push(node);
       } else {
         updateCardNode(node, slot, idx);
         existing.delete(id);
       }
-      frag.appendChild(node);
+      desired.push(node);
     });
+
+    // Remove stale cards (no longer in state.room).
     for (const stale of existing.values()) stale.remove();
 
-    dom.roomGrid.innerHTML = "";
-    dom.roomGrid.appendChild(frag);
+    // Reconcile order in place — only insert if not already at correct index.
+    desired.forEach((node, idx) => {
+      const current = dom.roomGrid.children[idx];
+      if (current !== node) {
+        dom.roomGrid.insertBefore(node, current || null);
+      }
+    });
+
+    if (freshCards.length) {
+      if (animateNew) {
+        // Force layout so the browser paints the freshly-added cards
+        // FACE-DOWN before we toggle .is-flipped — otherwise mobile
+        // browsers can batch both into one paint and skip the flip
+        // animation, leaving the card stuck on its back face.
+        void dom.roomGrid.offsetWidth;
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            for (const n of freshCards) n.classList.add("is-flipped");
+          });
+        });
+      } else {
+        for (const n of freshCards) n.classList.add("is-flipped");
+      }
+    }
   }
 
   function makeCardNode(slot, idx) {
@@ -351,17 +377,48 @@
     const title = document.getElementById("modal-end-title");
     const summary = document.getElementById("end-summary");
     const score = document.getElementById("end-score");
+    const slot = document.getElementById("end-card-slot");
+    const target = document.getElementById("end-card-target");
+
     if (state.status === "won") {
       title.textContent = "Victory";
       summary.textContent = `You cleared the dungeon with ${state.health} health remaining.`;
       score.textContent = `Score: +${state.score}`;
       score.classList.remove("is-loss");
+      slot.hidden = true;
+      target.innerHTML = "";
     } else {
       title.textContent = "Defeat";
       const remaining = -state.score;
       summary.textContent = `You fell in the dungeon. ${remaining} monster point${remaining === 1 ? "" : "s"} were left.`;
       score.textContent = `Score: ${state.score}`;
       score.classList.add("is-loss");
+
+      if (state.killedBy) {
+        // Build a face-up card node identical to the room cards.
+        const card = state.killedBy;
+        const art = artworkName(card);
+        const fakeSlot = { card, resolved: false, carry: false };
+        const node = makeCardNode(fakeSlot, 0);
+        node.classList.add("is-flipped", "is-modal-card", "pop-defeat");
+        node.setAttribute("aria-label",
+          `Felled by ${a11yLabel(card, 0).replace(/^Slot \d+: /, "").replace(/\. Activate to resolve\.$/, "")}.`);
+        node.removeAttribute("role");
+        node.disabled = true;
+
+        target.innerHTML = "";
+        target.appendChild(node);
+        // Drop the animation class after it finishes so a re-open of
+        // the modal can replay it cleanly.
+        node.addEventListener("animationend", () => {
+          node.classList.remove("pop-defeat");
+        }, { once: true });
+
+        slot.hidden = false;
+      } else {
+        slot.hidden = true;
+        target.innerHTML = "";
+      }
     }
     modal.hidden = false;
   }

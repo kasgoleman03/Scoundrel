@@ -168,7 +168,13 @@
       const card = e.target.closest(".card");
       if (!card) return;
       const idx = Number.parseInt(card.dataset.slot, 10);
-      if (Number.isFinite(idx)) onResolveSlot(idx);
+      if (Number.isFinite(idx)) {
+        onResolveSlot(idx);
+        // Release focus so touch devices don't keep :hover / :focus on
+        // the just-resolved card (which would otherwise stick its
+        // transform state until the user tapped elsewhere).
+        if (card.blur) card.blur();
+      }
     });
   }
 

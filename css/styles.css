@@ -583,6 +583,57 @@ kbd {
   flex-wrap: wrap;
 }
 
+/* "Felled by" card slot inside the defeat modal */
+.end-card-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 4px 0 18px;
+  perspective: 1000px;
+}
+.end-card-caption {
+  font-size: .72rem;
+  letter-spacing: .22em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--danger);
+  text-shadow: 0 0 12px rgba(226,96,96,.45);
+}
+.end-card-target {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 160px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius);
+  animation: defeat-flash 700ms cubic-bezier(.2,.8,.2,1);
+}
+.end-card-target .card {
+  width: 100%;
+  height: 100%;
+  cursor: default;
+}
+.end-card-target .card.is-modal-card {
+  /* card-pop animation overrides the per-card entrance stagger */
+  animation: none;
+}
+.end-card-target .card.pop-defeat {
+  animation: card-defeat-pop 700ms cubic-bezier(.2,.8,.2,1) both;
+  transform-origin: 50% 60%;
+}
+/* Make absolutely sure the modal card stays face-up even though the
+   shared .card rules normally toggle .is-flipped on roomGrid cards. */
+.end-card-target .card.is-flipped .flipper {
+  transform: rotateY(180deg);
+}
+.end-card-target .card.is-flipped:hover .flipper {
+  /* No hover lift inside the modal */
+  transform: rotateY(180deg);
+  filter: none;
+}
+
 /* ---------- Debug panel ---------- */
 .debug-panel {
   background: var(--bg-2);
